@@ -22,9 +22,7 @@ jobs:
           remove-docker-images: 'true'
 
       - name: Clone kreuzberg v4.6.3
-        run: |
-          git clone --depth 1 --branch v4.6.3 https://github.com/kreuzberg-dev/kreuzberg.git
-          echo "KREUZBERG_DIR=$(pwd)/kreuzberg" >> $GITHUB_ENV
+        run: git clone --depth 1 --branch v4.6.3 https://github.com/kreuzberg-dev/kreuzberg.git
 
       - name: Build Linux wheel
         uses: PyO3/maturin-action@v1
@@ -40,8 +38,8 @@ jobs:
             yum install -y openssl openssl-devel pkgconfig
             export OPENSSL_LIB_DIR=/usr/lib64
             export OPENSSL_INCLUDE_DIR=/usr/include
-            echo "=== Building CLI Binary ==="
-            cargo build --release --package kreuzberg-cli --features all
+            echo "=== Building CLI Binary (default features) ==="
+            cargo build --release --package kreuzberg-cli
             mkdir -p kreuzberg
             cp ../../target/release/kreuzberg kreuzberg/kreuzberg-cli
 
