@@ -34,14 +34,9 @@ jobs:
           working-directory: kreuzberg/packages/python
           before-script-linux: |
             set -euo pipefail
-            rustup component add rust-src || true
             yum install -y openssl openssl-devel pkgconfig
             export OPENSSL_LIB_DIR=/usr/lib64
             export OPENSSL_INCLUDE_DIR=/usr/include
-            echo "=== Building CLI Binary (default features) ==="
-            cargo build --release --package kreuzberg-cli
-            mkdir -p kreuzberg
-            cp ../../target/release/kreuzberg kreuzberg/kreuzberg-cli
 
       - name: List wheels
         run: ls -lh kreuzberg/target/wheels/
