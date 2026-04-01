@@ -33,4 +33,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kreuzberg-wheel
-          path: kreuzberg/packages/python/target/wheels/*.whl
+          path: kreuzberg/target/wheels/*.whl
