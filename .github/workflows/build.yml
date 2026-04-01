@@ -1,0 +1,36 @@
+name: Build kreuzberg wheel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone kreuzberg v4.6.3
+        run: git clone --depth 1 --branch v4.6.3 https://github.com/kreuzberg-dev/kreuzberg.git
+
+      - name: Build wheel in manylinux_2_28
+        run: |
+          docker run --rm \
+            -v $(pwd)/kreuzberg:/repo \
+            quay.io/pypa/manylinux_2_28_x86_64 \
+            bash -c "
+              yum install -y openssl-devel 2>&1 | tail -2 &&
+              curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable 2>&1 | tail -3 &&
+              source ~/.cargo/env &&
+              cargo fetch --manifest-path /repo/Cargo.toml &&
+              cargo fetch --manifest-path /repo/crates/kreuzberg-ffi/Cargo.toml &&
+              /opt/python/cp310-cp310/bin/pip install maturin --quiet &&
+              cd /repo/packages/python &&
+              ORT_STRATEGY=download CARGO_NET_OFFLINE=true \
+              /opt/python/cp310-cp310/bin/maturin build --release \
+                -i /opt/python/cp310-cp310/bin/python3.10 \
+                --manylinux 2_28
+            "
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: kreuzberg-wheel
+          path: kreuzberg/packages/python/target/wheels/*.whl
