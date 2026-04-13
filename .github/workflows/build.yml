@@ -1,65 +1,30 @@
-name: Build kreuzberg wheel
+name: Build kreuzberg wheel (macOS)
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-14          # Apple Silicon M1
     timeout-minutes: 180
+
     steps:
-      - name: Maximize build disk space
-        uses: easimon/maximize-build-space@v10
-        with:
-          root-reserve-mb: 2048
-          temp-reserve-mb: 512
-          swap-size-mb: 4096
-          overprovision-lvm: 'true'
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
+      - name: Clone kreuzberg v4.8.3
+        run: git clone --depth 1 --branch v4.8.3 https://github.com/kreuzberg-dev/kreuzberg.git
 
-      - name: Clone kreuzberg v4.6.3
-        run: git clone --depth 1 --branch v4.6.3 https://github.com/kreuzberg-dev/kreuzberg.git
+      - name: Enable pdf-oxide feature
+        run: |
+          sed -i '' 's/"bundled-pdfium", "full"/"bundled-pdfium", "full", "pdf-oxide"/' \
+            kreuzberg/crates/kreuzberg-py/Cargo.toml
+          grep 'pdf-oxide' kreuzberg/crates/kreuzberg-py/Cargo.toml
 
-      - name: Build Linux wheel
+      - name: Build macOS wheel
         uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release -i python3.10 --out ../../target/wheels
-          target: x86_64-unknown-linux-gnu
-          manylinux: manylinux_2_28
+          args: --release -i python3.12 --out ../../target/wheels
+          target: aarch64-apple-darwin
           working-directory: kreuzberg/packages/python
-          before-script-linux: |
-            set -euo pipefail
-            yum install -y openssl openssl-devel pkgconfig
-            export OPENSSL_LIB_DIR=/usr/lib64
-            export OPENSSL_INCLUDE_DIR=/usr/include
-
-            # Create glibc 2.35 compat stubs for symbols introduced in glibc 2.38
-            cat > /tmp/glibc_compat.c << 'CEOF'
-            #include <stdlib.h>
-            #include <stddef.h>
-
-            long long __isoc23_strtoll(const char *s, char **e, int b) { return strtoll(s, e, b); }
-            unsigned long long __isoc23_strtoull(const char *s, char **e, int b) { return strtoull(s, e, b); }
-            long __isoc23_strtol(const char *s, char **e, int b) { return strtol(s, e, b); }
-            unsigned long __isoc23_strtoul(const char *s, char **e, int b) { return strtoul(s, e, b); }
-            double __isoc23_strtod(const char *s, char **e) { return strtod(s, e); }
-            float __isoc23_strtof(const char *s, char **e) { return strtof(s, e); }
-            char __libc_single_threaded = 0;
-            CEOF
-
-            gcc -O2 -c /tmp/glibc_compat.c -o /tmp/glibc_compat.o
-            ar rcs /usr/lib64/libglibc_compat.a /tmp/glibc_compat.o
-
-            mkdir -p /root/.cargo
-            cat >> /root/.cargo/config.toml << 'TOMLEOF'
-            [target.x86_64-unknown-linux-gnu]
-            rustflags = ["-C", "link-arg=-lglibc_compat", "-C", "link-arg=-L/usr/lib64"]
-            TOMLEOF
 
       - name: List wheels
         run: ls -lh kreuzberg/target/wheels/
@@ -67,5 +32,5 @@ jobs:
       - name: Upload wheel
         uses: actions/upload-artifact@v4
         with:
-          name: kreuzberg-wheel
+          name: kreuzberg-wheel-macos
           path: kreuzberg/target/wheels/*.whl
