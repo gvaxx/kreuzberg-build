@@ -9,14 +9,8 @@ jobs:
     timeout-minutes: 180
 
     steps:
-      - name: Clone kreuzberg v4.8.3
-        run: git clone --depth 1 --branch v4.8.3 https://github.com/kreuzberg-dev/kreuzberg.git
-
-      - name: Enable pdf-oxide feature
-        run: |
-          sed -i '' 's/"bundled-pdfium", "full"/"bundled-pdfium", "full", "pdf-oxide"/' \
-            kreuzberg/crates/kreuzberg-py/Cargo.toml
-          grep 'pdf-oxide' kreuzberg/crates/kreuzberg-py/Cargo.toml
+      - name: Clone kreuzberg (fork with PdfBackend exposed)
+        run: git clone --depth 1 --branch feat/expose-pdf-backend https://github.com/gvaxx/kreuzberg.git
 
       - name: Build macOS wheel
         uses: PyO3/maturin-action@v1
